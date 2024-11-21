@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Разметка предложений</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        let currentSentenceIndex = 0;
+
+        // Загрузка предложения
+        function loadSentence(index) {
+            fetch(`/get_sentence/${index}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sentence) {
+                        document.getElementById("sentence-text").textContent = data.sentence;
+                        document.getElementById("progress").textContent = `Вопрос ${data.index}/${data.total}`;
+                        document.getElementById("class-selection").innerHTML = generateClassOptions(data.classes);
+                        document.getElementById("class-description").textContent = "";
+                        document.getElementById("additional-input-container").classList.add("hidden");
+                        document.getElementById("next-button").disabled = false;
+                        document.getElementById("is-complete").checked = false;
+                        document.getElementById("additional-input").value = "";
+                    } else {
+                        document.getElementById("sentence-container").innerHTML = `
+                            <h2>Все предложения обработаны!</h2>
+                        `;
+                    }
+                });
+        }
+
+        // Генерация списка классов
+        function generateClassOptions(classes) {
+            return Object.keys(classes).map(className => `
+                <label class="class-option">
+                    <input type="radio" name="class" value="${className}" onclick="toggleDescription('${className}', '${classes[className]}')">
+                    ${className}
+                </label>
+            `).join("");
+        }
+
+        // Отображение описания класса
+        function toggleDescription(className, description) {
+            document.getElementById("class-description").textContent = description;
+        }
+
+        // Показать/скрыть поле ввода для неполных ответов
+        function toggleAdditionalInput(checkbox) {
+            const inputContainer = document.getElementById("additional-input-container");
+            if (checkbox.checked) {
+                inputContainer.classList.remove("hidden");
+            } else {
+                inputContainer.classList.add("hidden");
+                document.getElementById("additional-input").value = ""; // Очистка поля
+            }
+        }
+
+        // Отправка ответа
+        function handleSubmit() {
+            const selectedClass = document.querySelector("input[name='class']:checked");
+            const isComplete = !document.getElementById("is-complete").checked; // Галочка "НЕ полный"
+            const additionalInput = document.getElementById("additional-input").value.trim();
+
+            if (!selectedClass) {
+                alert("Выберите класс!");
+                return;
+            }
+
+            const payload = {
+                sentence: document.getElementById("sentence-text").textContent,
+                class: selectedClass.value,
+                isComplete: isComplete,
+                additionalInput: isComplete ? null : additionalInput // Отправляем null, если ответ полный
+            };
+
+            fetch("/submit", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(() => {
+                    currentSentenceIndex++;
+                    loadSentence(currentSentenceIndex);
+                })
+                .catch(err => {
+                    console.error("Ошибка отправки данных:", err);
+                });
+        }
+
+        // Загрузка последнего незавершенного предложения из сессии
+        window.onload = () => loadSentence(currentSentenceIndex);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Разметка предложений</h1>
+        <div id="sentence-container">
+            <p id="progress"></p>
+            <p id="sentence-text"></p>
+            <div id="class-selection"></div>
+            <p id="class-description"></p>
+            <label>
+                <input type="checkbox" id="is-complete" onclick="toggleAdditionalInput(this)">
+                Ответ НЕ полный
+            </label>
+            <div id="additional-input-container" class="hidden">
+                <label>Что не так?</label>
+                <textarea id="additional-input" rows="3" cols="50"></textarea>
+            </div>
+            <button id="next-button" onclick="handleSubmit()">Далее</button>
+        </div>
+    </div>
+</body>
+</html>

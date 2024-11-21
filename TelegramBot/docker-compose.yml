@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  telegram_bot:
+    build: .
+    container_name: telegram_bot
+    restart: always
+    environment:
+      - BOT_TOKEN="YOUR_BOT_TOKEN"
+      - CLASSIFIER_URL="YOUR_CLASSIFIER_URL"
+    volumes:
+      - .:/usr/src/app

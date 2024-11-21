@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  vk_bot:
+    build: .
+    container_name: vk_bot
+    restart: always
+    environment:
+      - VK_GROUP_TOKEN="YOUR_VK_GROUP_TOKEN"
+      - CLASSIFIER_URL="YOUR_CLASSIFIER_URL"
+    volumes:
+      - .:/usr/src/app
